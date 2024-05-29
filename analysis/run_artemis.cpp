@@ -15,11 +15,13 @@
 #include "TModuleDecoderA3100FreeRunTSI.h"
 #include "TModuleDecoderV1740_mod.h"
 
-int main(int argc, char** argv){
+int main(int argc, char **argv)
+{
     std::string filename = argv[1];
     art::TLoopManager *man = art::TLoopManager::Instance();
     std::map<std::string, std::string> replace;
-    if (argc==4) {
+    if (argc == 4)
+    {
         replace["NAME"] = argv[2];
         replace["NUM"] = argv[3];
     }
@@ -68,10 +70,16 @@ int main(int argc, char** argv){
     df->Register(new art::TModuleDecoderSkip(30));
 
     // Preparation of folder for artemis
-    TFolder *top = gROOT->GetRootFolder()->AddFolder("artemis","artemis top level folders");
+    TFolder *top = gROOT->GetRootFolder()->AddFolder("artemis", "artemis top level folders");
     gROOT->GetListOfBrowsables()->Add(top);
 
-    man->Add(filename.c_str(),&replace);
+    man->Add(filename.c_str(), &replace);
     man->Resume();
+    do
+    {
+        sleep(1);
+    } while (man->GetLoop()->IsRunning());
+    man->Suspend();
+    man->Terminate();
     return 0;
 }

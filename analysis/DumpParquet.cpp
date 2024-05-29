@@ -22,19 +22,42 @@
 #include <parquet/arrow/writer.h>
 #include <vector>
 #include <functional>
-#include "DumpParquet.hpp"
+#include <TSystem.h>
+#include "TParquetFileWriter.hpp"
+#include "TTimingChargeDataBuilder.hpp"
+#include "TSRPPACPlaneDataBuilder.hpp"
 
 /** prints usage **/
 void usage(char *argv0)
 {
     std::cout << "[DumpParquet]: Usage: "
-              << argv0 << "-c [config_file] -n [n_workers] -o [output_file]"
+              << argv0 << "-i [input_file] -n [n_workers] -o [output_file]"
               << std::endl;
 }
 
 // Main function
 int main(int argc, char **argv)
 {
+    // TString dypath = gSystem->GetDynamicPath();
+    // TString incpath = gSystem->GetIncludePath();
+    // incpath.Append(gSystem->GetFromPipe("artemis-config --cflags"));
+    // dypath.Append(gSystem->GetFromPipe("artemis-config --dypaths"));
+    // dypath.Append(":/home/sh12s24/art_analysis/user/yokoyama/install/lib");
+    // incpath.Append(" -I/home/sh12s24/art_analysis/user/yokoyama/install/include");
+
+    // dypath.Append(":/opt/GETDecoder/lib");
+    // incpath.Append(" -I/opt/GETDecoder/include");
+
+    // gSystem->SetDynamicPath(dypath);
+    // gSystem->SetIncludePath(incpath);
+    //  gSystem->Load("libGETDecoder");
+    //  gSystem->Load("libMinuit");
+    //  gSystem->Load("libGenetic");
+    // gSystem->Load("libartshare");
+    // gSystem->Load("libCAT");
+    gSystem->Load("liboedo");
+    // gSystem->Load("libartget_sh12");
+
     std::string input_file_name;
     std::string output_file_name = "output.parquet";
     Int_t n_workers = 1;
@@ -71,55 +94,22 @@ int main(int argc, char **argv)
     // ROOT::EnableImplicitMT(n_workers);
 
     // Create RDataFrame from a tree.
-    ROOT::RDataFrame d("tree", input_file_name);
+    auto rd = std::make_shared<ROOT::RDataFrame>("tree", input_file_name);
+
+    art::TParquetFileWriter writer(rd);
 
     // Define builder objects
-    TTimingChargeDataBuilder sr91x("sr91x");
-    TTimingChargeDataBuilder sr91y("sr91y");
-    TTimingChargeDataBuilder diapad("diapad");
+    writer.AddBuilder(std::make_shared<art::TTimingChargeDataBuilder>("src1_x_raw"));
+    writer.AddBuilder(std::make_shared<art::TTimingChargeDataBuilder>("src1_y_raw"));
+    writer.AddBuilder(std::make_shared<art::TTimingChargeDataBuilder>("src2_x_raw"));
+    writer.AddBuilder(std::make_shared<art::TTimingChargeDataBuilder>("src2_y_raw"));
+    writer.AddBuilder(std::make_shared<art::TSRPPACPlaneDataBuilder>("src1_x"));
+    writer.AddBuilder(std::make_shared<art::TSRPPACPlaneDataBuilder>("src1_y"));
+    writer.AddBuilder(std::make_shared<art::TSRPPACPlaneDataBuilder>("src2_x"));
+    writer.AddBuilder(std::make_shared<art::TSRPPACPlaneDataBuilder>("src2_y"));
+    writer.AddBuilder(std::make_shared<art::TTimingChargeDataBuilder>("activeslit"));
 
-    // Define the memory pool
-    auto pool = arrow::default_memory_pool();
-
-    // Process tree
-    auto output = d.Define("sr91x_vec", [&](const TClonesArray &input)
-                           { return sr91x.GetVector(input); },
-                           {"sr91_x_cal"})
-                      .Define("sr91y_vec", [&](const TClonesArray &input)
-                              { return sr91y.GetVector(input); },
-                              {"sr91_y_cal"})
-                      .Define("diapad_vec", [&](const TClonesArray &input)
-                              { return diapad.GetVector(input); },
-                              {"diapad"});
-    output.Foreach([&](const std::vector<art::TTimingChargeData *> &input)
-                   { sr91x.FillArrow(input); },
-                   {"sr91x_vec"});
-    output.Foreach([&](const std::vector<art::TTimingChargeData *> &input)
-                   { sr91y.FillArrow(input); },
-                   {"sr91y_vec"});
-    output.Foreach([&](const std::vector<art::TTimingChargeData *> &input)
-                   { diapad.FillArrow(input); },
-                   {"diapad_vec"});
-
-    // Finalize the arrays
-    arrow::FieldVector fieldVector;
-    arrow::ArrayVector arrayVector;
-    sr91x.Finalize(fieldVector, arrayVector);
-    sr91y.Finalize(fieldVector, arrayVector);
-    diapad.Finalize(fieldVector, arrayVector);
-
-    // Create the table
-    std::shared_ptr<arrow::Schema> schema = arrow::schema(fieldVector);
-    auto table = arrow::Table::Make(schema, arrayVector);
-
-    // Write to file
-    std::shared_ptr<arrow::io::FileOutputStream> outfile;
-    PARQUET_ASSIGN_OR_THROW(
-        outfile,
-        arrow::io::FileOutputStream::Open(output_file_name));
-
-    PARQUET_THROW_NOT_OK(
-        parquet::arrow::WriteTable(*table, pool, outfile));
-
+    writer.Fill();
+    writer.Write(output_file_name);
     return 0;
 }
