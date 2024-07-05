@@ -8,9 +8,10 @@ list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/install/ CACHE PATH "install dir" FORCE)
 
 # Build options
-
 option(BUILD_PARQUET "option to build with parquet outputs (requires Apache Arrow libraries)" OFF)
-message(${BUILD_PARQUET})
+message("BUILD_PARQUET:" ${BUILD_PARQUET})
+option(BUILD_KAFKA "option to build with Apache Kafka streaming (requires librdkafka)" OFF)
+message("BUILD_KAFKA:" ${BUILD_KAFKA})
 
 
 # path definitions
@@ -34,6 +35,9 @@ link_directories(${ARTEMIS_GET_LIB_DIR})
 add_subdirectory(src-oedo)
 add_subdirectory(src-get)
 add_subdirectory(analysis)
+if(${BUILD_KAFKA})
+    add_subdirectory(kafka-streaming)
+endif()
 
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/thisartemis-oedo.sh.in"
