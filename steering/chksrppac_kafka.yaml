@@ -1,0 +1,134 @@
+Anchor:
+# - &input ridf_rftest/@NAME@@NUM@.ridf
+ - &input ridf/@NAME@@NUM@.ridf
+ - &output output/@NAME@/@NUM@/chksrppac@NAME@@NUM@.root
+ - &histout output/@NAME@/@NUM@/chksrppac@NAME@@NUM@.hist.root
+
+Processor:
+  - name: timer
+    type: art::TTimerProcessor
+
+  - name: ridf
+    type: art::TRIDFEventStoreKafka
+    parameter:
+      OutputTransparency: 1
+      BootstrapServers: shfs02:9092
+      TopicName: ridf-test
+      GroupId: artemis
+      Timeout: 3
+      #Timestamp:  1720507886504
+
+  - name: mapper
+    type: art::TMappingProcessor
+    parameter:
+      OutputTransparency: 1
+
+  - include: tref.yaml
+  - include: bld/srppac/srppac.yaml
+
+
+### FE9 SR-PPAC Hist
+
+  - name: projection
+    type: art::TTreeProjectionProcessor
+    parameter:
+      FileName: hist/srppac/chksrppac.yaml
+      Type:     art::TTreeProjection
+      Replace: |
+        sr: sr91       
+
+  - name: projection
+    type: art::TTreeProjectionProcessor
+    parameter:
+      FileName: hist/srppac/chksrppac.yaml
+      Type:     art::TTreeProjection
+      Replace: |
+        sr: sr92       
+
+  - name: projection
+    type: art::TTreeProjectionProcessor
+    parameter:
+      FileName: hist/srppac/chksrppaceffFE9.yaml
+      Type:     art::TTreeProjection
+
+  - name: projection
+    type: art::TTreeProjectionProcessor
+    parameter:
+      FileName: hist/srppac/dqdx_hist.yaml
+      Type:     art::TTreeProjection
+      Replace: |
+        fp: fe9       
+        sru: sr91       
+        srd: sr92       
+
+
+
+### FE12 SR-PPAC Hist
+
+  - name: projection
+    type: art::TTreeProjectionProcessor
+    parameter:
+      FileName: hist/srppac/chksrppac.yaml
+      Type:     art::TTreeProjection
+      Replace: |
+        sr: src1       
+
+  - name: projection
+    type: art::TTreeProjectionProcessor
+    parameter:
+      FileName: hist/srppac/chksrppac.yaml
+      Type:     art::TTreeProjection
+      Replace: |
+        sr: src2       
+
+  - name: projection
+    type: art::TTreeProjectionProcessor
+    parameter:
+      FileName: hist/srppac/chksrppaceffFE12.yaml
+      Type:     art::TTreeProjection
+
+  - name: projection
+    type: art::TTreeProjectionProcessor
+    parameter:
+      FileName: hist/srppac/dqdx_hist.yaml
+      Type:     art::TTreeProjection
+      Replace: |
+        fp: fe12       
+        sru: src1       
+        srd: src2       
+
+
+### S1 SR-PPAC Hist
+
+  - name: projection
+    type: art::TTreeProjectionProcessor
+    parameter:
+      FileName: hist/srppac/chksrppac.yaml
+      Type:     art::ttreeprojection
+      Replace: |
+        sr: sr11      
+
+  - name: projection
+    type: art::TTreeProjectionProcessor
+    parameter:
+      FileName: hist/srppac/chksrppac.yaml
+      Type:     art::TTreeProjection
+      Replace: |
+        sr: sr12       
+
+  - name: projection
+    type: art::TTreeProjectionProcessor
+    parameter:
+      FileName: hist/srppac/dqdx_hist.yaml
+      Type:     art::TTreeProjection
+      OutputFilename: *histout
+      Replace: |
+        fp: s1       
+        sru: sr11       
+        srd: sr12       
+
+  - name: outputtree
+    type: art::TOutputTreeProcessor
+    parameter:
+      FileName: 
+        - *output

@@ -22,6 +22,7 @@
   gSystem->Load("libCAT");
   gSystem->Load("liboedo");
   gSystem->Load("libartget_sh12");
+  gSystem->Load("libartemisKafkaStreaming");
   TCatCmdFactory *cf = TCatCmdFactory::Instance();
   cf->SetOptExactName(kFALSE);
   cf->Register(TCatCmdHelp::Instance());

@@ -5,7 +5,7 @@
 #include "mira_streaming.hpp"
 
 // word size for RIDF (=4)
-static const u_int32_t kWordSize = 4;
+static const size_t kWordSize = 4;
 
 // Global variables for Kafka (assuming they are defined somewhere else)
 bool kafka_ready = false; // Placeholder
@@ -57,12 +57,16 @@ void readRIDF(std::string ridf_file_name, rd_kafka_topic_t *topic, u_int64_t n_b
         if (ridf.tellg() + block_size * 2 > size)
             break;
 
+        // Break if the block size is zero
+        if (!block_size)
+            break;
+
         // Read the block
         auto buff = std::make_unique<char[]>(block_size * 2);
         ridf.read(buff.get(), block_size * 2);
 
         // Placeholder for Kafka producer logic
-        mira::produce(topic, block_size, buff.get());
+        mira::produce(topic, block_size * 2, buff.get());
         ++block_count;
 
         if (!(block_count % 1000))
@@ -73,6 +77,9 @@ void readRIDF(std::string ridf_file_name, rd_kafka_topic_t *topic, u_int64_t n_b
 
         //  Break if the block size is greater than EoF
         if (block_count > n_block)
+            break;
+
+        if (ridf.tellg() == -1)
             break;
     }
     ridf.close();

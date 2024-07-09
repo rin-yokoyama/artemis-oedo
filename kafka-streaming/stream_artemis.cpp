@@ -1,6 +1,7 @@
 #include <iostream>
 #include <TFolder.h>
 #include <TROOT.h>
+#include <TSystem.h>
 #include "TLoopManager.h"
 #include "TModuleDecoderFactory.h"
 #include "TModuleDecoderFixed.h"
@@ -17,21 +18,22 @@
 
 int main(int argc, char **argv)
 {
-    if (argc < 3)
+    if (argc < 4)
     {
-        std::cout << "Usage: stream_artemis [steering_file] [bootstrap.servers] [client.id (= 0)]" << std::endl;
+        std::cout << "Usage: stream_artemis [steering_file] [NAME] [NUM]" << std::endl;
         return 1;
     }
     std::string filename = argv[1];
-    std::string bootstrap_servers = argv[2];
-    std::string client_id = "0";
-    if (argc > 3)
+    std::map<std::string, std::string> replace;
+    if (argc == 4)
     {
-        client_id = argv[3];
+        replace["NAME"] = argv[2];
+        replace["NUM"] = argv[3];
     }
 
+    gSystem->Load("liboedo");
+    gSystem->Load("libartemisKafkaStreaming");
     art::TLoopManager *man = art::TLoopManager::Instance();
-    std::map<std::string, std::string> replace;
 
     art::TModuleDecoderFactory *df = art::TModuleDecoderFactory::Instance();
     // mod ID 0 : Fixed16
