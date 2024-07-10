@@ -51,15 +51,15 @@ namespace mira
         }
     }
 
-    rd_kafka_topic_t *init_producer(const std::string &client_id, const std::string &bootstrap_servers, const std::string &topic_names)
+    rd_kafka_topic_t *init_producer(const std::string &client_id, const std::string &bootstrap_servers, const std::string &topic_names, rd_kafka_t *rk)
     {
         char errstr[512];
         rd_kafka_conf_t *conf = rd_kafka_conf_new();
         rd_kafka_conf_set(conf, "client.id", client_id.c_str(), errstr, sizeof(errstr));
         rd_kafka_conf_set(conf, "bootstrap.servers", bootstrap_servers.c_str(), errstr, sizeof(errstr));
         rd_kafka_topic_conf_t *topic_conf = rd_kafka_topic_conf_new();
-        rd_kafka_t *rk_p = rd_kafka_new(RD_KAFKA_PRODUCER, conf, errstr, sizeof(errstr));
-        rd_kafka_topic_t *topics = rd_kafka_topic_new(rk_p, topic_names.c_str(), topic_conf);
+        rk = rd_kafka_new(RD_KAFKA_PRODUCER, conf, errstr, sizeof(errstr));
+        rd_kafka_topic_t *topics = rd_kafka_topic_new(rk, topic_names.c_str(), topic_conf);
         return topics;
     }
 

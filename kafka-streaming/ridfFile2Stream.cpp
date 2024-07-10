@@ -101,8 +101,13 @@ int main(int argc, char **argv)
     if (argc == 5)
         n_block = std::atoi(argv[4]);
     // initialize a Kafka producer
-    auto topic = mira::init_producer("0", bootstrap_servers, topic_name);
+    rd_kafka_t *rk;
+    auto topic = mira::init_producer("0", bootstrap_servers, topic_name, rk);
+
     // main loop
     readRIDF(input_file_name, topic, n_block);
+    rd_kafka_flush(rk, 1000 * 10);
+    rd_kafka_topic_destroy(topic);
+    rd_kafka_destroy(rk);
     return 0;
 }
