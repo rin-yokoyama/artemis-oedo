@@ -18,7 +18,6 @@ endfunction()
 # Add filenames without their .cpp extension to compile and generate executables. 
 addExec(run_artemis)
 addExec(RDataFrameAnalysis)
-addExec(srppacRDataFrameAna)
 
 if(BUILD_PARQUET)
 find_package(Arrow REQUIRED)
