@@ -161,5 +161,6 @@ Bool_t TKafkaDataSource::SetOffset(const ULong64_t &timestamp)
 
     rd_kafka_topic_partition_list_destroy(tpl);
     rd_kafka_metadata_destroy(metadata);
+    fStatus = kReady;
     return kTRUE;
 }
