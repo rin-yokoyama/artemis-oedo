@@ -89,18 +89,19 @@ void readRIDF(std::string ridf_file_name, rd_kafka_topic_t *topic, u_int64_t n_b
 
 int main(int argc, char **argv)
 {
-    if (argc < 3)
+    if (argc < 4)
     {
-        std::cout << "Usage: ridfFile2Stream [input_file] [bootstrap_servers] [n_block(optional)]" << std::endl;
+        std::cout << "Usage: ridfFile2Stream [input_file] [bootstrap_servers] [topic] [n_block(optional)]" << std::endl;
         return 1;
     }
     std::string input_file_name = argv[1];  // input file name
     std::string bootstrap_servers(argv[2]); // Kafka bootstrap.servers
+    std::string topic_name(argv[3]);        // Kafka topic
     u_int64_t n_block = -1;
-    if (argc == 4)
-        n_block = std::atoi(argv[3]);
+    if (argc == 5)
+        n_block = std::atoi(argv[4]);
     // initialize a Kafka producer
-    auto topic = mira::init_producer("0", bootstrap_servers, "ridf-test");
+    auto topic = mira::init_producer("0", bootstrap_servers, topic_name);
     // main loop
     readRIDF(input_file_name, topic, n_block);
     return 0;
