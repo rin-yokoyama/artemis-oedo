@@ -22,7 +22,7 @@ art::TRIDFEventStoreKafka::TRIDFEventStoreKafka() : TRIDFEventStore()
     RegisterProcessorParameter<TString>("GroupId", "Kafka parameter: group.id", group_id_, "0");
     RegisterProcessorParameter<TString>("ClientId", "Kafka parameter: client.id", client_id_, "0");
     RegisterProcessorParameter<TString>("Timestamp", "Kafka parameter: timestamp", timestamp_, "0");
-    RegisterProcessorParameter<TString>("Timeout", "Time out to stop in sec.", timeout_, "10");
+    RegisterProcessorParameter<TString>("Timeout", "Time out to stop in sec. 0 never time outs.", timeout_, "0");
 }
 
 art::TRIDFEventStoreKafka::~TRIDFEventStoreKafka() {}
@@ -79,7 +79,7 @@ void art::TRIDFEventStoreKafka::Process()
             }
             if (fDataSource->GetStatus() == art::TDataSource::kReady)
                 ++count;
-            if (count > 10)
+            if (timeout_sec_ && count > timeout_sec_)
                 NotifyEndOfRun();
         }
     }
