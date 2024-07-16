@@ -27,6 +27,17 @@ void readRIDF(std::string ridf_file_name, rd_kafka_topic_t *topic, u_int64_t n_b
     std::cout << "File size: " << size << " bytes." << std::endl;
     ridf.seekg(0);
 
+    // Get the number of partitions for the topic
+    const rd_kafka_metadata_t *metadata;
+    if (rd_kafka_metadata(mira::rk_producer, 0, topic, &metadata, 5000) != RD_KAFKA_RESP_ERR_NO_ERROR)
+    {
+        std::cerr << "Failed to fetch metadata: " << rd_kafka_err2str(rd_kafka_last_error()) << std::endl;
+        return;
+    }
+
+    int partition_count = metadata->topics[0].partition_cnt;
+    std::cout << "Number of partitions: " << partition_count << std::endl;
+
     u_int64_t block_count = 0;
     while (true)
     {
@@ -46,7 +57,7 @@ void readRIDF(std::string ridf_file_name, rd_kafka_topic_t *topic, u_int64_t n_b
             block_size = (header32[0] & 0x003fffff);
             class_id = ((header32[0] & 0x0fc00000) >> 22);
             layer = ((header32[0] & 0x30000000) >> 28);
-            ridf.seekg(ridf.tellg() - kWordSize);
+            ridf.seekg((u_int32_t)ridf.tellg() - kWordSize);
             // std::cout << "read block: " << block_size << ", class id: " << class_id << ", layer: " << layer << std::endl;
         };
 
@@ -54,7 +65,7 @@ void readRIDF(std::string ridf_file_name, rd_kafka_topic_t *topic, u_int64_t n_b
         readHeader(block_size, class_id, layer);
 
         // Break if the block size is greater than EoF
-        if (ridf.tellg() + block_size * 2 > size)
+        if (((u_int32_t)ridf.tellg() + (2 * block_size)) > size)
             break;
 
         // Break if the block size is zero
@@ -65,22 +76,48 @@ void readRIDF(std::string ridf_file_name, rd_kafka_topic_t *topic, u_int64_t n_b
         auto buff = std::make_unique<char[]>(block_size * 2);
         ridf.read(buff.get(), block_size * 2);
 
-        // Placeholder for Kafka producer logic
-        mira::produce(topic, block_size * 2, buff.get());
-        ++block_count;
-
-        if (!(block_count % 1000))
+        if (!block_count)
         {
-            double progress = (double)ridf.tellg() / (double)size * 100.;
-            std::cout << "block_count: " << block_count << ", " << ridf.tellg() << "bytes/" << size << "bytes (" << progress << "\%)" << std::endl;
+            for (int i = 0; i < partition_count; ++i)
+            {
+                if (rd_kafka_produce(
+                        topic, i,
+                        RD_KAFKA_MSG_F_COPY,
+                        buff.get(), block_size * 2,
+                        nullptr, 0,
+                        nullptr) == -1)
+                {
+                    std::cerr << "Failed to produce message to partition " << i << ": " << rd_kafka_err2str(rd_kafka_last_error()) << std::endl;
+                }
+                else
+                {
+                    std::cout << "Produced message to partition " << i << std::endl;
+                }
+            }
+            // Wait for all messages to be delivered
+            std::cout << "Flushing final messages..." << std::endl;
+            rd_kafka_flush(mira::rk_producer, 10 * 1000); // Wait for max 10 seconds
+            ++block_count;
         }
+        else
+        {
+            // Placeholder for Kafka producer logic
+            mira::produce(topic, block_size * 2, buff.get());
+            ++block_count;
 
-        //  Break if the block size is greater than EoF
-        if (block_count > n_block)
-            break;
+            if (!(block_count % 1000))
+            {
+                double progress = (double)ridf.tellg() / (double)size * 100.;
+                std::cout << "block_count: " << block_count << ", " << ridf.tellg() << "bytes/" << size << "bytes (" << progress << "\%)" << std::endl;
+            }
 
-        if (ridf.tellg() == -1)
-            break;
+            //  Break if the block size is greater than EoF
+            if (block_count > n_block)
+                break;
+
+            if (ridf.tellg() == -1)
+                break;
+        }
     }
     ridf.close();
     std::cout
