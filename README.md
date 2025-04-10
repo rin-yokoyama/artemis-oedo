@@ -45,3 +45,23 @@ cd ..
 source thisartemis-oedo.sh
 ```
 You should be ready to use artemis with the oedo library now.
+
+## Parquet output option
+To enable parquet output, turn on the `BUILD_PARQUET` option in cmake. (Go to the build directory and call `cmake .. -DBUILD_PARQUET=ON`.)
+Follow the instructions on https://arrow.apache.org/install to install arrow and parquet C++ packages beforehand.
+If you make install in the build dir with this option, an executable named DumpParquet will be created.
+```
+Usage:
+DumpParquet -i [input_file_name] (-o [output_file_name])
+```
+Edit analysis/DumpParquet.cpp to change which branches to dump.
+You need to have a corresponding DataBuilder class in src-parquet/ for each artemis data class.
+
+Currently, following classes are supported.
+- TEventHeader
+- TSimpleData
+- TTimingChargeData
+- TSRPPACPlaneData
+- TMWDCHitData
+- TTrackingResultData
+
